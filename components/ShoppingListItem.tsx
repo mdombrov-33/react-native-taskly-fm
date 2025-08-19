@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   itemContainer: {
     borderBottomWidth: 1,
     borderBottomColor: theme.colorCerulean,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     paddingVertical: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
