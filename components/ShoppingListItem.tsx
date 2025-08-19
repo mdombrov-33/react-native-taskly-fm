@@ -3,10 +3,12 @@ import {
   TouchableOpacity,
   Pressable,
   StyleSheet,
-  Alert
+  Alert,
+  View
 } from 'react-native';
 import { theme } from '../theme';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import { Entypo } from '@expo/vector-icons';
 
 type Props = {
   name: string;
@@ -47,21 +49,29 @@ function ShoppingListItem({
       ]}
       onPress={onToggleComplete}
     >
-      <Text
-        style={[
-          styles.itemText,
-          isCompleted ? styles.completedText : undefined
-        ]}
-      >
-        {name}
-      </Text>
-      <TouchableOpacity onPress={handleDelete} activeOpacity={0.7}>
-        <AntDesign
-          name="closecircle"
+      <View style={styles.row}>
+        <Entypo
+          name={isCompleted ? 'check' : 'circle'}
           size={24}
-          color={isCompleted ? theme.colorGrey : theme.colorRed}
+          color={isCompleted ? theme.colorGrey : theme.colorCerulean}
         />
-      </TouchableOpacity>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.itemText,
+            isCompleted ? styles.completedText : undefined
+          ]}
+        >
+          {name}
+        </Text>
+        <TouchableOpacity onPress={handleDelete} activeOpacity={0.7}>
+          <AntDesign
+            name="closecircle"
+            size={24}
+            color={isCompleted ? theme.colorGrey : theme.colorRed}
+          />
+        </TouchableOpacity>
+      </View>
     </Pressable>
   );
 }
@@ -73,10 +83,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colorCerulean,
     paddingHorizontal: 12,
-    paddingVertical: 16,
+    paddingVertical: 16
+  },
+  row: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    width: '100%'
   },
   completedContainer: {
     backgroundColor: theme.colorLightGrey,
@@ -84,7 +97,10 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: 18,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    flex: 1,
+    minWidth: 0,
+    marginHorizontal: 8
   },
   completedText: {
     textDecorationLine: 'line-through',
