@@ -1,10 +1,27 @@
-import { StyleSheet, TextInput, FlatList, View, Text } from 'react-native';
+import {
+  StyleSheet,
+  TextInput,
+  FlatList,
+  View,
+  Text,
+  LayoutAnimation,
+  UIManager,
+  Platform
+} from 'react-native';
 import ShoppingListItem from '../components/ShoppingListItem';
 import { theme } from '../theme';
 import { useEffect, useState } from 'react';
 import { getFromStorage, saveToStorage } from '../utils/storage';
 
 const storageKey = 'shopping-list';
+
+// Enable LayoutAnimation for Android
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type ShoppingListItemType = {
   id: string;
@@ -28,6 +45,29 @@ const initialList: ShoppingListItemType[] = [
   }
 ];
 
+// Helper function to sort the shopping list
+function orderShoppingList(list: ShoppingListItemType[]) {
+  // Create a copy to avoid mutating the state directly
+  const sortedList = [...list];
+  return sortedList.sort((item1, item2) => {
+    if (item1.completedAtTimestamp && item2.completedAtTimestamp) {
+      return item2.completedAtTimestamp - item1.completedAtTimestamp;
+    }
+
+    if (item1.completedAtTimestamp && !item2.completedAtTimestamp) {
+      return 1;
+    }
+
+    if (!item1.completedAtTimestamp && item2.completedAtTimestamp) {
+      return -1;
+    }
+
+    return (
+      (item2.lastUpdatedTimestamp ?? 0) - (item1.lastUpdatedTimestamp ?? 0)
+    );
+  });
+}
+
 export default function App() {
   const [value, setValue] = useState('');
   const [shoppingList, setShoppingList] =
@@ -37,7 +77,8 @@ export default function App() {
     const fetchInitialData = async () => {
       const data = await getFromStorage(storageKey);
       if (data) {
-        setShoppingList(data);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+        setShoppingList(orderShoppingList(data)); // Sort initial data
       }
     };
     fetchInitialData();
@@ -45,16 +86,17 @@ export default function App() {
 
   const handleSubmit = () => {
     if (value) {
-      const newShoppingList = [
-        {
-          id: new Date().toISOString(),
-          name: value,
-          lastUpdatedTimestamp: Date.now()
-        },
-        ...shoppingList
-      ];
-      setShoppingList(newShoppingList);
-      saveToStorage(storageKey, newShoppingList);
+      const newListItem: ShoppingListItemType = {
+        id: new Date().toISOString(),
+        name: value,
+        lastUpdatedTimestamp: Date.now()
+      };
+      const newShoppingList = [newListItem, ...shoppingList];
+      const sortedList = orderShoppingList(newShoppingList);
+
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+      setShoppingList(sortedList);
+      saveToStorage(storageKey, sortedList);
       setValue('');
     }
   };
@@ -62,11 +104,12 @@ export default function App() {
   const handleDelete = (id: string) => {
     const newShoppingList = shoppingList.filter((item) => item.id !== id);
     saveToStorage(storageKey, newShoppingList);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
     setShoppingList(newShoppingList);
   };
 
   const handleToggleComplete = (id: string) => {
-    const newShoppingList = shoppingList.map((item) => {
+    const updatedList = shoppingList.map((item) => {
       if (item.id === id) {
         return {
           ...item,
@@ -78,36 +121,20 @@ export default function App() {
       }
       return item;
     });
-    saveToStorage(storageKey, newShoppingList);
-    setShoppingList(newShoppingList);
+
+    const sortedList = orderShoppingList(updatedList);
+    saveToStorage(storageKey, sortedList);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+    setShoppingList(sortedList);
   };
-
-  function orderShoppingList(shoppingList: ShoppingListItemType[]) {
-    return shoppingList.sort((item1, item2) => {
-      if (item1.completedAtTimestamp && item2.completedAtTimestamp) {
-        return item2.completedAtTimestamp - item1.completedAtTimestamp;
-      }
-
-      if (item1.completedAtTimestamp && !item2.completedAtTimestamp) {
-        return 1;
-      }
-
-      if (!item1.completedAtTimestamp && item2.completedAtTimestamp) {
-        return -1;
-      }
-
-      return (
-        (item2.lastUpdatedTimestamp ?? 0) - (item1.lastUpdatedTimestamp ?? 0)
-      );
-    });
-  }
 
   return (
     <FlatList
-      data={orderShoppingList(shoppingList)}
+      data={shoppingList} // Pass the sorted state directly
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
       stickyHeaderIndices={[0]}
+      keyExtractor={(item) => item.id}
       ListEmptyComponent={
         <View style={styles.listEmptyContainer}>
           <Text>Your shopping list is empty</Text>
